@@ -359,15 +359,9 @@ func (c *Client) connect(server string, port int) {
 				}
 			}(conn)
 
-			for {
-				time.Sleep(time.Microsecond)
-				if c.readyState == OPEN {
-					if c.readyStateCallback.OnOpen != nil {
-						c.readyStateCallback.OnOpen()
-					}
-
-					break
-				}
+			c.readyState = OPEN
+			if c.readyStateCallback.OnOpen != nil {
+				c.readyStateCallback.OnOpen()
 			}
 
 			<-quit
