@@ -27,8 +27,6 @@ const (
 	CLOSED     = 3 // 连接已经关闭，或者连接无法建立
 )
 
-var defaultClient *Client
-
 type Handler interface {
 	Handle(header, body []byte)
 }
@@ -67,24 +65,22 @@ func (f handlerFunc) Handle(header, body []byte) {
 }
 
 func NewClient(server string, port int, readyStateCallback ReadyStateCallback) *Client {
-	if defaultClient == nil {
-		defaultClient = &Client{
-			readyState:       CONNECTING,
-			mutex:            new(sync.Mutex),
-			rwMutex:          new(sync.RWMutex),
-			retryInterval:    5 * time.Second,
-			packet:           make(chan linker.Packet, 1024),
-			handlerContainer: sync.Map{},
-		}
-
-		if readyStateCallback != nil {
-			defaultClient.readyStateCallback = readyStateCallback
-		}
-
-		go defaultClient.connect(server, port)
+	c := &Client{
+		readyState:       CONNECTING,
+		mutex:            new(sync.Mutex),
+		rwMutex:          new(sync.RWMutex),
+		retryInterval:    5 * time.Second,
+		packet:           make(chan linker.Packet, 1024),
+		handlerContainer: sync.Map{},
 	}
 
-	return defaultClient
+	if readyStateCallback != nil {
+		c.readyStateCallback = readyStateCallback
+	}
+
+	go c.connect(server, port)
+
+	return c
 }
 
 // 获取链接运行状态
