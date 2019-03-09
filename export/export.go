@@ -53,6 +53,8 @@ type ReadyStateCallback interface {
 
 // Client 客户端结构体
 type Client struct {
+	conn                   net.Conn
+	closed                 bool
 	readyStateCallback     ReadyStateCallback
 	readyState             int
 	mutex                  *sync.Mutex
@@ -311,11 +313,21 @@ func (c *Client) SetTimeout(timeout int) {
 	c.timeout = time.Duration(timeout) * time.Second
 }
 
-func (c *Client) connect(server string, port int) {
-	// 检测conn的状态，断线以后进行重连操作
-	address := strings.Join([]string{server, strconv.Itoa(port)}, ":")
-	conn, err := net.Dial("tcp", address)
+// Close 关闭链接
+func (c *Client) Close() error {
+	c.closed = true
+	return c.conn.Close()
+}
 
+func (c *Client) connect(server string, port int) {
+	var (
+		err     error
+		address = strings.Join([]string{server, strconv.Itoa(port)}, ":")
+	)
+
+	c.conn, err = net.Dial("tcp", address)
+
+	// 检测conn的状态，断线以后进行重连操作
 	for {
 		if err != nil {
 			c.readyState = CLOSED
@@ -325,8 +337,13 @@ func (c *Client) connect(server string, port int) {
 				c.readyStateCallback.OnError(err.Error())
 			}
 
+			// 如果是调用c.Close()方法关闭的则跳过重连机制
+			if c.closed {
+				return
+			}
+
 			time.Sleep(c.retryInterval) // 重连失败以后休息一会再干活
-			conn, err = net.Dial("tcp", address)
+			c.conn, err = net.Dial("tcp", address)
 		} else {
 			quit := make(chan bool, 1)
 			go func(conn net.Conn) {
@@ -334,7 +351,7 @@ func (c *Client) connect(server string, port int) {
 				if err != nil {
 					quit <- true
 				}
-			}(conn)
+			}(c.conn)
 
 			c.readyState = OPEN
 			c.readyStateCallback.OnOpen()
