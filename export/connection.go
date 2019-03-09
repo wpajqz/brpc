@@ -13,7 +13,7 @@ import (
 	"github.com/wpajqz/linker/utils/convert"
 )
 
-// 处理客户端连接
+// handleConnection 处理客户端连接
 func (c *Client) handleConnection(conn net.Conn) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func(cancel context.CancelFunc) { cancel() }(cancel)
@@ -38,7 +38,7 @@ func (c *Client) handleConnection(conn net.Conn) (err error) {
 	return
 }
 
-// 对发送的数据包进行处理
+// handleSendPackets 对发送的数据包进行处理
 func (c *Client) handleSendPackets(ctx context.Context, conn net.Conn) error {
 	for {
 		select {
@@ -57,7 +57,7 @@ func (c *Client) handleSendPackets(ctx context.Context, conn net.Conn) error {
 	}
 }
 
-// 对接收到的数据包进行处理
+// handleReceivedPackets 对接收到的数据包进行处理
 func (c *Client) handleReceivedPackets(conn net.Conn) error {
 	var (
 		bType         = make([]byte, 4)
