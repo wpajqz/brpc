@@ -100,7 +100,7 @@ func (c *Client) GetReadyState() int {
 }
 
 // Ping 心跳处理，客户端与服务端保持长连接
-func (c *Client) Ping(interval int64, param []byte, callback RequestStatusCallback) error {
+func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 	if callback == nil {
 		return errors.New("callback can't be nil")
 	}
@@ -134,17 +134,8 @@ func (c *Client) Ping(interval int64, param []byte, callback RequestStatusCallba
 	}
 
 	c.packet <- p
-	ticker := time.NewTicker(time.Duration(interval) * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			if c.readyState != OPEN {
-				return nil
-			}
 
-			c.packet <- p
-		}
-	}
+	return nil
 }
 
 // SyncSend 向服务端发送请求，同步处理服务端返回结果
