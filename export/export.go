@@ -110,7 +110,7 @@ func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 	}
 
 	sequence := time.Now().UnixNano()
-	listener := int64(linker.OPERATOR_HEARTBEAT) + sequence
+	listener := int64(linker.OperatorHeartbeat) + sequence
 
 	c.handlerContainer.Store(listener, handlerFunc(func(header, body []byte) {
 		code := c.GetResponseProperty("code")
@@ -125,7 +125,7 @@ func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 	}))
 
 	// 建立连接以后就发送心跳包建立会话信息，后面的定期发送
-	p, err := linker.NewPacket(linker.OPERATOR_HEARTBEAT, sequence, c.request.Header, param, []linker.PacketPlugin{
+	p, err := linker.NewPacket(linker.OperatorHeartbeat, sequence, c.request.Header, param, []linker.PacketPlugin{
 		&plugins.Encryption{},
 	})
 
