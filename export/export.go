@@ -252,7 +252,11 @@ func (c *Client) RemoveMessageListener(listener string) {
 func (c *Client) SetRequestProperty(key, value string) {
 	v := c.GetRequestProperty(key)
 	if v != "" {
-		c.request.Header = bytes.Trim(c.request.Header, key+"="+value+";")
+		old := []byte(key + "=" + v + ";")
+		new := []byte(key + "=" + value + ";")
+		c.request.Header = bytes.ReplaceAll(c.request.Header, old, new)
+
+		return
 	}
 
 	c.request.Header = append(c.request.Header, []byte(key+"="+value+";")...)
@@ -288,7 +292,11 @@ func (c *Client) GetResponseProperty(key string) string {
 func (c *Client) SetResponseProperty(key, value string) {
 	v := c.GetResponseProperty(key)
 	if v != "" {
-		c.response.Header = bytes.Trim(c.response.Header, key+"="+value+";")
+		old := []byte(key + "=" + v + ";")
+		new := []byte(key + "=" + value + ";")
+		c.response.Header = bytes.ReplaceAll(c.response.Header, old, new)
+
+		return
 	}
 
 	c.response.Header = append(c.response.Header, []byte(key+"="+value+";")...)
