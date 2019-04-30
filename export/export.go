@@ -89,7 +89,27 @@ func NewClient(server string, port int, readyStateCallback ReadyStateCallback) *
 		c.readyStateCallback = readyStateCallback
 	}
 
-	go c.connect(server, port)
+	go c.connect("tcp", server, port)
+
+	return c
+}
+
+// NewUDPClient 初始化UDP客户端链接
+func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback) *Client {
+	c := &Client{
+		readyState:       CONNECTING,
+		mutex:            new(sync.Mutex),
+		rwMutex:          new(sync.RWMutex),
+		retryInterval:    5 * time.Second,
+		packet:           make(chan linker.Packet, 1024),
+		handlerContainer: sync.Map{},
+	}
+
+	if readyStateCallback != nil {
+		c.readyStateCallback = readyStateCallback
+	}
+
+	go c.connect("udp", server, port)
 
 	return c
 }
@@ -310,13 +330,13 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) connect(server string, port int) {
+func (c *Client) connect(network, server string, port int) {
 	var (
 		err     error
 		address = strings.Join([]string{server, strconv.Itoa(port)}, ":")
 	)
 
-	c.conn, err = net.Dial("tcp", address)
+	c.conn, err = net.Dial(network, address)
 
 	// 检测conn的状态，断线以后进行重连操作
 	for {
@@ -334,7 +354,7 @@ func (c *Client) connect(server string, port int) {
 			}
 
 			time.Sleep(c.retryInterval) // 重连失败以后休息一会再干活
-			c.conn, err = net.Dial("tcp", address)
+			c.conn, err = net.Dial(network, address)
 		} else {
 			quit := make(chan bool, 1)
 			go func(conn net.Conn) {
