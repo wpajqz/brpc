@@ -13,8 +13,13 @@ import (
 	"github.com/wpajqz/linker/utils/convert"
 )
 
+const (
+	networkTCP = "tcp"
+	networkUDP = "udp"
+)
+
 // handleConnection 处理客户端连接
-func (c *Client) handleConnection(conn net.Conn) (err error) {
+func (c *Client) handleConnection(network string, conn net.Conn) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func(cancel context.CancelFunc) { cancel() }(cancel)
 
@@ -27,9 +32,19 @@ func (c *Client) handleConnection(conn net.Conn) (err error) {
 	}(conn)
 
 	go func(conn net.Conn) {
-		err = c.handleReceivedPackets(conn)
-		if err != nil {
-			q <- true
+		switch network {
+		case networkTCP:
+			err = c.handleReceivedTCPPackets(conn)
+			if err != nil {
+				q <- true
+			}
+		case networkUDP:
+			err = c.handleReceivedUDPPackets(conn)
+			if err != nil {
+				q <- true
+			}
+		default:
+			panic("unsupported network")
 		}
 	}(conn)
 
@@ -57,8 +72,51 @@ func (c *Client) handleSendPackets(ctx context.Context, conn net.Conn) error {
 	}
 }
 
-// handleReceivedPackets 对接收到的数据包进行处理
-func (c *Client) handleReceivedPackets(conn net.Conn) error {
+// handleReceivedUDPPackets 对接收到的数据包进行处理
+func (c *Client) handleReceivedUDPPackets(conn net.Conn) error {
+	udpConn := conn.(*net.UDPConn)
+	for {
+		if c.timeout != 0 {
+			conn.SetReadDeadline(time.Now().Add(c.timeout))
+		}
+
+		data := make([]byte, MaxPayload)
+		n, _, err := udpConn.ReadFromUDP(data)
+		if err != nil {
+			continue
+		}
+
+		bType := data[0:4]
+		bSequence := data[4:12]
+		bHeaderLength := data[12:16]
+
+		sequence := convert.BytesToInt64(bSequence)
+		headerLength := convert.BytesToUint32(bHeaderLength)
+
+		header := data[20 : 20+headerLength]
+		body := data[20+headerLength : n]
+
+		receive, err := linker.NewPacket(convert.BytesToUint32(bType), sequence, header, body, []linker.PacketPlugin{
+			&plugins.Decryption{},
+		})
+		if err != nil {
+			return err
+		}
+
+		c.response.Header = receive.Header
+		c.response.Body = receive.Body
+
+		operator := int64(convert.BytesToUint32(bType)) + sequence
+		if handler, ok := c.handlerContainer.Load(operator); ok {
+			if v, ok := handler.(Handler); ok {
+				v.Handle(receive.Header, receive.Body)
+			}
+		}
+	}
+}
+
+// handleReceivedTCPPackets 对接收到的数据包进行处理
+func (c *Client) handleReceivedTCPPackets(conn net.Conn) error {
 	var (
 		bType         = make([]byte, 4)
 		bSequence     = make([]byte, 8)

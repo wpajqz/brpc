@@ -358,7 +358,7 @@ func (c *Client) connect(network, server string, port int) {
 		} else {
 			quit := make(chan bool, 1)
 			go func(conn net.Conn) {
-				err = c.handleConnection(conn)
+				err = c.handleConnection(network, conn)
 				if err != nil {
 					quit <- true
 				}
