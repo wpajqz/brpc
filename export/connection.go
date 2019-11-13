@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/wpajqz/linker"
-	"github.com/wpajqz/linker/plugins"
 	"github.com/wpajqz/linker/utils/convert"
 )
 
@@ -96,9 +95,7 @@ func (c *Client) handleReceivedUDPPackets(conn net.Conn) error {
 		header := data[20 : 20+headerLength]
 		body := data[20+headerLength : n]
 
-		receive, err := linker.NewPacket(convert.BytesToUint32(bType), sequence, header, body, []linker.PacketPlugin{
-			&plugins.Decryption{},
-		})
+		receive, err := linker.NewPacket(convert.BytesToUint32(bType), sequence, header, body, c.pluginForPacketReceiver)
 		if err != nil {
 			return err
 		}
@@ -169,9 +166,7 @@ func (c *Client) handleReceivedTCPPackets(conn net.Conn) error {
 			return err
 		}
 
-		receive, err := linker.NewPacket(nType, sequence, header, body, []linker.PacketPlugin{
-			&plugins.Decryption{},
-		})
+		receive, err := linker.NewPacket(nType, sequence, header, body, c.pluginForPacketReceiver)
 		if err != nil {
 			return err
 		}

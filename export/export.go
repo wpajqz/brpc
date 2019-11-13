@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/wpajqz/linker"
-	"github.com/wpajqz/linker/plugins"
 )
 
 const (
@@ -53,17 +52,19 @@ type ReadyStateCallback interface {
 
 // Client 客户端结构体
 type Client struct {
-	conn                   net.Conn
-	closed                 bool
-	readyStateCallback     ReadyStateCallback
-	readyState             int
-	mutex                  *sync.Mutex
-	rwMutex                *sync.RWMutex
-	timeout, retryInterval time.Duration
-	handlerContainer       sync.Map
-	packet                 chan linker.Packet
-	maxPayload             int32
-	request, response      struct {
+	conn                    net.Conn
+	closed                  bool
+	readyStateCallback      ReadyStateCallback
+	readyState              int
+	mutex                   *sync.Mutex
+	rwMutex                 *sync.RWMutex
+	timeout, retryInterval  time.Duration
+	handlerContainer        sync.Map
+	packet                  chan linker.Packet
+	pluginForPacketSender   []linker.PacketPlugin
+	pluginForPacketReceiver []linker.PacketPlugin
+	maxPayload              int32
+	request, response       struct {
 		Header, Body []byte
 	}
 }
@@ -145,9 +146,7 @@ func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 	}))
 
 	// 建立连接以后就发送心跳包建立会话信息，后面的定期发送
-	p, err := linker.NewPacket(linker.OperatorHeartbeat, sequence, c.request.Header, param, []linker.PacketPlugin{
-		&plugins.Encryption{},
-	})
+	p, err := linker.NewPacket(linker.OperatorHeartbeat, sequence, c.request.Header, param, c.pluginForPacketSender)
 
 	if err != nil {
 		return err
@@ -194,9 +193,7 @@ func (c *Client) SyncSend(operator string, param []byte, callback RequestStatusC
 		quit <- true
 	}))
 
-	p, err := linker.NewPacket(nType, sequence, c.request.Header, param, []linker.PacketPlugin{
-		&plugins.Encryption{},
-	})
+	p, err := linker.NewPacket(nType, sequence, c.request.Header, param, c.pluginForPacketSender)
 
 	if err != nil {
 		return err
@@ -240,9 +237,7 @@ func (c *Client) AsyncSend(operator string, param []byte, callback RequestStatus
 		c.handlerContainer.Delete(listener)
 	}))
 
-	p, err := linker.NewPacket(nType, sequence, c.request.Header, param, []linker.PacketPlugin{
-		&plugins.Encryption{},
-	})
+	p, err := linker.NewPacket(nType, sequence, c.request.Header, param, c.pluginForPacketSender)
 
 	if err != nil {
 		return err
@@ -256,6 +251,16 @@ func (c *Client) AsyncSend(operator string, param []byte, callback RequestStatus
 // SetMaxPayload 设置可处理的数据包的最大长度
 func (c *Client) SetMaxPayload(maxPayload int32) {
 	c.maxPayload = maxPayload
+}
+
+// SetPluginForPacketSender 设置发送包需要的插件
+func (c *Client) SetPluginForPacketSender(plugins []linker.PacketPlugin) {
+	c.pluginForPacketSender = plugins
+}
+
+// pluginForPacketReceiver 设置接收包需要的插件
+func (c *Client) SetPluginForPacketReceiver(plugins []linker.PacketPlugin) {
+	c.pluginForPacketReceiver = plugins
 }
 
 // AddMessageListener 添加事件监听器
