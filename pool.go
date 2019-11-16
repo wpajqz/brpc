@@ -1,4 +1,4 @@
-package go_sdk
+package brpc
 
 import (
 	"errors"
