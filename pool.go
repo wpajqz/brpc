@@ -16,7 +16,7 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 	// ping请求的回调，出错的时候调用
 	cb := RequestStatusCallback{
 		Error: func(code int, msg string) {
-			log.Printf("brpc error: %s", msg)
+			log.Printf("brpc error: %s\n", msg)
 		},
 	}
 
@@ -24,7 +24,7 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 	factory := func() (interface{}, error) {
 		exportClient, err := export.NewClient(server, port, &readyStateCallback{Open: c.onOpen, Close: c.onClose, Error: func(err string) { c.onError(errors.New(err)) }})
 		if err != nil {
-			return nil, fmt.Errorf("brpc error: %s", err.Error())
+			return nil, fmt.Errorf("brpc error: %s\n", err.Error())
 		}
 
 		exportClient.SetMaxPayload(maxPayload)
