@@ -27,7 +27,7 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 			return nil, fmt.Errorf("brpc error: %s\n", err.Error())
 		}
 
-		exportClient.SetMaxPayload(maxPayload)
+		exportClient.SetMaxPayload(c.maxPayload)
 		exportClient.SetPluginForPacketSender([]linker.PacketPlugin{
 			&plugins.Encryption{},
 		})

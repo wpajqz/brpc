@@ -63,7 +63,7 @@ type Client struct {
 	packet                  chan linker.Packet
 	pluginForPacketSender   []linker.PacketPlugin
 	pluginForPacketReceiver []linker.PacketPlugin
-	maxPayload              int32
+	maxPayload              int
 	request, response       struct {
 		Header, Body []byte
 	}
@@ -255,7 +255,7 @@ func (c *Client) AsyncSend(operator string, param []byte, callback RequestStatus
 }
 
 // SetMaxPayload 设置可处理的数据包的最大长度
-func (c *Client) SetMaxPayload(maxPayload int32) {
+func (c *Client) SetMaxPayload(maxPayload int) {
 	c.maxPayload = maxPayload
 }
 

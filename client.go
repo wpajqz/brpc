@@ -8,10 +8,6 @@ import (
 	"github.com/wpajqz/brpc/export"
 )
 
-const (
-	maxPayload = 10 * 1024 * 1024
-)
-
 var (
 	defaultClient *Client
 	once                = &sync.Once{}
@@ -20,6 +16,7 @@ var (
 
 type (
 	Client struct {
+		maxPayload      int
 		initialCap      int
 		maxCap          int
 		idleTimeout     time.Duration
@@ -27,26 +24,28 @@ type (
 		onOpen, onClose func()
 		onError         func(error)
 	}
-
-	Options struct {
-		InitialCap      int
-		MaxCap          int
-		IdleTimeout     time.Duration
-		OnOpen, OnClose func()
-		OnError         func(error)
-	}
 )
 
-func NewClient(server string, port int, options Options) (*Client, error) {
+func NewClient(server string, port int, opts ...Option) (*Client, error) {
 	var err error
 	once.Do(func() {
+		options := options{
+			maxPayload: 10 * 1024 * 1024,
+			initialCap: 10,
+			maxCap:     30,
+		}
+
+		for _, o := range opts {
+			o.apply(&options)
+		}
+
 		defaultClient = &Client{
-			initialCap:  options.InitialCap,
-			maxCap:      options.MaxCap,
-			idleTimeout: options.IdleTimeout,
-			onOpen:      options.OnOpen,
-			onClose:     options.OnClose,
-			onError:     options.OnError,
+			initialCap:  options.initialCap,
+			maxCap:      options.maxCap,
+			idleTimeout: options.idleTimeout,
+			onOpen:      options.onOpen,
+			onClose:     options.onClose,
+			onError:     options.onError,
 		}
 
 		var p pool.Pool
