@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/silenceper/pool"
-	"github.com/wpajqz/go-sdk/export"
+	"github.com/wpajqz/brpc/export"
 	"github.com/wpajqz/linker"
 	"github.com/wpajqz/linker/plugins"
 )
