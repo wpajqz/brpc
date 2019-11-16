@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/silenceper/pool"
-	"github.com/wpajqz/go-sdk/export"
+	"github.com/wpajqz/brpc/export"
 )
 
 const (
