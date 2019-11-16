@@ -76,7 +76,7 @@ func (f handlerFunc) Handle(header, body []byte) {
 }
 
 // NewClient 初始化客户端链接
-func NewClient(server string, port int, readyStateCallback ReadyStateCallback) *Client {
+func NewClient(server string, port int, readyStateCallback ReadyStateCallback) (*Client, error) {
 	c := &Client{
 		readyState:       CONNECTING,
 		mutex:            new(sync.Mutex),
@@ -90,13 +90,16 @@ func NewClient(server string, port int, readyStateCallback ReadyStateCallback) *
 		c.readyStateCallback = readyStateCallback
 	}
 
-	go c.connect("tcp", server, port)
+	err := c.connect("tcp", server, port)
+	if err != nil {
+		return nil, err
+	}
 
-	return c
+	return c, nil
 }
 
 // NewUDPClient 初始化UDP客户端链接
-func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback) *Client {
+func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback) (*Client, error) {
 	c := &Client{
 		readyState:       CONNECTING,
 		mutex:            new(sync.Mutex),
@@ -110,9 +113,12 @@ func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback
 		c.readyStateCallback = readyStateCallback
 	}
 
-	go c.connect("udp", server, port)
+	err := c.connect("tcp", server, port)
+	if err != nil {
+		return nil, err
+	}
 
-	return c
+	return c, nil
 }
 
 // GetReadyState 获取链接运行状态
@@ -335,16 +341,23 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) connect(network, server string, port int) {
+func (c *Client) connect(network, server string, port int) error {
 	var (
 		err     error
 		address = strings.Join([]string{server, strconv.Itoa(port)}, ":")
 	)
 
 	c.conn, err = net.Dial(network, address)
+	if err != nil {
+		return err
+	}
 
-	// 检测conn的状态，断线以后进行重连操作
-	for {
+	c.readyState = OPEN
+
+	go func(conn net.Conn) {
+		c.readyStateCallback.OnOpen()
+
+		err = c.handleConnection(network, conn)
 		if err != nil {
 			c.readyState = CLOSED
 			if err == io.EOF {
@@ -352,27 +365,8 @@ func (c *Client) connect(network, server string, port int) {
 			} else {
 				c.readyStateCallback.OnError(err.Error())
 			}
-
-			// 如果是调用c.Close()方法关闭的则跳过重连机制
-			if c.closed {
-				return
-			}
-
-			time.Sleep(c.retryInterval) // 重连失败以后休息一会再干活
-			c.conn, err = net.Dial(network, address)
-		} else {
-			quit := make(chan bool, 1)
-			go func(conn net.Conn) {
-				err = c.handleConnection(network, conn)
-				if err != nil {
-					quit <- true
-				}
-			}(c.conn)
-
-			c.readyState = OPEN
-			c.readyStateCallback.OnOpen()
-
-			<-quit
 		}
-	}
+	}(c.conn)
+
+	return err
 }
