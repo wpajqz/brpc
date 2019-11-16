@@ -40,6 +40,7 @@ func NewClient(server string, port int, opts ...Option) (*Client, error) {
 		}
 
 		defaultClient = &Client{
+			maxPayload:  options.maxPayload,
 			initialCap:  options.initialCap,
 			maxCap:      options.maxCap,
 			idleTimeout: options.idleTimeout,

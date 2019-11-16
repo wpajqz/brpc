@@ -79,7 +79,7 @@ func (c *Client) handleReceivedUDPPackets(conn net.Conn) error {
 			conn.SetReadDeadline(time.Now().Add(c.timeout))
 		}
 
-		data := make([]byte, MaxPayload)
+		data := make([]byte, 0, c.maxPayload)
 		n, _, err := udpConn.ReadFromUDP(data)
 		if err != nil {
 			continue
@@ -152,8 +152,8 @@ func (c *Client) handleReceivedTCPPackets(conn net.Conn) error {
 		bodyLength = convert.BytesToUint32(bBodyLength)
 
 		pacLen = headerLength + bodyLength + 20
-		if pacLen > MaxPayload {
-			return fmt.Errorf("the packet is big than %v", strconv.Itoa(MaxPayload))
+		if pacLen > uint32(c.maxPayload) {
+			return fmt.Errorf("the packet is big than %v", strconv.Itoa(c.maxPayload))
 		}
 
 		header := make([]byte, headerLength)

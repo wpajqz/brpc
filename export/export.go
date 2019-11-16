@@ -14,14 +14,6 @@ import (
 	"github.com/wpajqz/linker"
 )
 
-const (
-	// MaxPayload max packet size
-	MaxPayload = 1024 * 1024
-
-	// Version sdk version
-	Version = "1.0"
-)
-
 // Connection status
 const (
 	CONNECTING = 0 // 连接还没开启
@@ -113,7 +105,7 @@ func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback
 		c.readyStateCallback = readyStateCallback
 	}
 
-	err := c.connect("tcp", server, port)
+	err := c.connect("udp", server, port)
 	if err != nil {
 		return nil, err
 	}
