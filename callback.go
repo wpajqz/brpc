@@ -1,7 +1,7 @@
 package brpc
 
 type (
-	readyStateCallback struct {
+	ReadyStateCallback struct {
 		Open  func()
 		Close func()
 		Error func(err string)
@@ -15,19 +15,19 @@ type (
 	}
 )
 
-func (r *readyStateCallback) OnOpen() {
+func (r *ReadyStateCallback) OnOpen() {
 	if r.Open != nil {
 		r.Open()
 	}
 }
 
-func (r *readyStateCallback) OnClose() {
+func (r *ReadyStateCallback) OnClose() {
 	if r.Close != nil {
 		r.Close()
 	}
 }
 
-func (r *readyStateCallback) OnError(err string) {
+func (r *ReadyStateCallback) OnError(err string) {
 	if r.Error != nil {
 		r.Error(err)
 	}

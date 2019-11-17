@@ -22,7 +22,7 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 
 	// factory 创建连接的方法
 	factory := func() (interface{}, error) {
-		exportClient, err := export.NewClient(server, port, &readyStateCallback{Open: c.onOpen, Close: c.onClose, Error: func(err string) { c.onError(errors.New(err)) }})
+		exportClient, err := export.NewClient(server, port, &ReadyStateCallback{Open: c.onOpen, Close: c.onClose, Error: func(err string) { c.onError(errors.New(err)) }})
 		if err != nil {
 			return nil, fmt.Errorf("brpc error: %s\n", err.Error())
 		}
