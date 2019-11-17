@@ -47,6 +47,8 @@ func (c *Client) handleConnection(network string, conn net.Conn) (err error) {
 		}
 	}(conn)
 
+	c.readyStateCallback.OnOpen()
+
 	<-q
 
 	return

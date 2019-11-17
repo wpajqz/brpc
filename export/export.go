@@ -347,8 +347,6 @@ func (c *Client) connect(network, server string, port int) error {
 	c.readyState = OPEN
 
 	go func(conn net.Conn) {
-		c.readyStateCallback.OnOpen()
-
 		err = c.handleConnection(network, conn)
 		if err != nil {
 			c.readyState = CLOSED
