@@ -10,6 +10,7 @@ import (
 
 	"github.com/wpajqz/linker"
 	"github.com/wpajqz/linker/utils/convert"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -22,36 +23,26 @@ func (c *Client) handleConnection(network string, conn net.Conn) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func(cancel context.CancelFunc) { cancel() }(cancel)
 
-	q := make(chan bool, 2)
-	go func(conn net.Conn) {
-		err = c.handleSendPackets(ctx, conn)
-		if err != nil {
-			q <- true
-		}
-	}(conn)
+	var eg errgroup.Group
 
-	go func(conn net.Conn) {
+	eg.Go(func() error {
+		return c.handleSendPackets(ctx, conn)
+	})
+
+	eg.Go(func() error {
 		switch network {
 		case networkTCP:
-			err = c.handleReceivedTCPPackets(conn)
-			if err != nil {
-				q <- true
-			}
+			return c.handleReceivedTCPPackets(conn)
 		case networkUDP:
-			err = c.handleReceivedUDPPackets(conn)
-			if err != nil {
-				q <- true
-			}
+			return c.handleReceivedUDPPackets(conn)
 		default:
 			panic("unsupported network")
 		}
-	}(conn)
+	})
 
 	c.readyStateCallback.OnOpen()
 
-	<-q
-
-	return
+	return eg.Wait()
 }
 
 // handleSendPackets 对发送的数据包进行处理
