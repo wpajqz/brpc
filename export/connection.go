@@ -65,7 +65,10 @@ func (c *Client) handleSendPackets(ctx context.Context, conn net.Conn) error {
 			}
 
 			if c.timeout != 0 {
-				conn.SetWriteDeadline(time.Now().Add(c.timeout))
+				err := conn.SetWriteDeadline(time.Now().Add(c.timeout))
+				if err != nil {
+					return err
+				}
 			}
 		case <-ctx.Done():
 			return nil
@@ -78,7 +81,10 @@ func (c *Client) handleReceivedUDPPackets(conn net.Conn) error {
 	udpConn := conn.(*net.UDPConn)
 	for {
 		if c.timeout != 0 {
-			conn.SetReadDeadline(time.Now().Add(c.timeout))
+			err := conn.SetReadDeadline(time.Now().Add(c.timeout))
+			if err != nil {
+				return err
+			}
 		}
 
 		data := make([]byte, 0, c.maxPayload)
@@ -129,7 +135,10 @@ func (c *Client) handleReceivedTCPPackets(conn net.Conn) error {
 
 	for {
 		if c.timeout != 0 {
-			conn.SetReadDeadline(time.Now().Add(c.timeout))
+			err := conn.SetReadDeadline(time.Now().Add(c.timeout))
+			if err != nil {
+				return err
+			}
 		}
 
 		if n, err := io.ReadFull(conn, bType); err != nil && n != 4 {
