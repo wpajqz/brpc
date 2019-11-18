@@ -50,7 +50,7 @@ type Client struct {
 	readyState              int
 	mutex                   *sync.Mutex
 	rwMutex                 *sync.RWMutex
-	timeout, retryInterval  time.Duration
+	timeout                 time.Duration
 	handlerContainer        sync.Map
 	packet                  chan linker.Packet
 	pluginForPacketSender   []linker.PacketPlugin
@@ -73,7 +73,6 @@ func NewClient(server string, port int, readyStateCallback ReadyStateCallback) (
 		readyState:       CONNECTING,
 		mutex:            new(sync.Mutex),
 		rwMutex:          new(sync.RWMutex),
-		retryInterval:    5 * time.Second,
 		packet:           make(chan linker.Packet, 1024),
 		handlerContainer: sync.Map{},
 	}
@@ -96,7 +95,6 @@ func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback
 		readyState:       CONNECTING,
 		mutex:            new(sync.Mutex),
 		rwMutex:          new(sync.RWMutex),
-		retryInterval:    5 * time.Second,
 		packet:           make(chan linker.Packet, 1024),
 		handlerContainer: sync.Map{},
 	}
@@ -315,11 +313,6 @@ func (c *Client) SetResponseProperty(key, value string) {
 
 	c.response.Header = bytes.ReplaceAll(c.response.Header, old, new)
 	c.response.Header = append(c.response.Header, []byte(key+"="+value+";")...)
-}
-
-// SetRetryInterval 设置断线重连的间隔时间, 单位s
-func (c *Client) SetRetryInterval(interval int) {
-	c.retryInterval = time.Duration(interval) * time.Second
 }
 
 // SetTimeout 设置服务端默认超时时间, 单位s
