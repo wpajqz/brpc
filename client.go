@@ -1,7 +1,6 @@
 package brpc
 
 import (
-	"sync"
 	"time"
 
 	"github.com/silenceper/pool"
@@ -10,7 +9,6 @@ import (
 
 var (
 	defaultClient *Client
-	once                = &sync.Once{}
 	interval      int64 = 60
 )
 
@@ -27,36 +25,32 @@ type (
 )
 
 func NewClient(server string, port int, opts ...Option) (*Client, error) {
-	var err error
-	once.Do(func() {
-		options := options{
-			maxPayload: 10 * 1024 * 1024,
-			initialCap: 10,
-			maxCap:     30,
-		}
+	options := options{
+		maxPayload: 10 * 1024 * 1024,
+		initialCap: 10,
+		maxCap:     30,
+	}
 
-		for _, o := range opts {
-			o.apply(&options)
-		}
+	for _, o := range opts {
+		o.apply(&options)
+	}
 
-		defaultClient = &Client{
-			maxPayload:  options.maxPayload,
-			initialCap:  options.initialCap,
-			maxCap:      options.maxCap,
-			idleTimeout: options.idleTimeout,
-			onOpen:      options.onOpen,
-			onClose:     options.onClose,
-			onError:     options.onError,
-		}
+	defaultClient = &Client{
+		maxPayload:  options.maxPayload,
+		initialCap:  options.initialCap,
+		maxCap:      options.maxCap,
+		idleTimeout: options.idleTimeout,
+		onOpen:      options.onOpen,
+		onClose:     options.onClose,
+		onError:     options.onError,
+	}
 
-		var p pool.Pool
-		p, err = defaultClient.newExportPool(server, port)
-		if err != nil {
-			return
-		}
+	p, err := defaultClient.newExportPool(server, port)
+	if err != nil {
+		return nil, err
+	}
 
-		defaultClient.clientPool = p
-	})
+	defaultClient.clientPool = p
 
 	return defaultClient, err
 }
