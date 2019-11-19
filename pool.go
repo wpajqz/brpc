@@ -37,18 +37,18 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 			&plugins.Decryption{},
 		})
 
-		go func() {
+		go func(ec *export.Client) {
 			ticker := time.NewTicker(time.Duration(interval) * time.Second)
 			for {
 				select {
 				case <-ticker.C:
-					err := exportClient.Ping(nil, cb)
+					err := ec.Ping(nil, cb)
 					if err != nil {
 						return
 					}
 				}
 			}
-		}()
+		}(exportClient)
 
 		return exportClient, nil
 	}
