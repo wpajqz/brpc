@@ -137,13 +137,13 @@ func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 			callback.OnError(v, message)
 		} else {
 			callback.OnSuccess(header, body)
-			callback.OnEnd()
 		}
+
+		c.handlerContainer.Delete(listener)
 	}))
 
 	// 建立连接以后就发送心跳包建立会话信息，后面的定期发送
 	p, err := linker.NewPacket(linker.OperatorHeartbeat, sequence, c.request.Header, param, c.pluginForPacketSender)
-
 	if err != nil {
 		return err
 	}
