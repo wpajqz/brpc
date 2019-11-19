@@ -12,6 +12,8 @@ import (
 	"github.com/wpajqz/linker/plugins"
 )
 
+var interval int64 = 60
+
 func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 	// ping请求的回调，出错的时候调用
 	cb := RequestStatusCallback{

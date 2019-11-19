@@ -7,10 +7,7 @@ import (
 	"github.com/wpajqz/brpc/export"
 )
 
-var (
-	defaultClient *Client
-	interval      int64 = 60
-)
+var defaultClient *Client
 
 type (
 	Client struct {
