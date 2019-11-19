@@ -148,7 +148,17 @@ func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 		return err
 	}
 
-	c.packet <- p
+	_, err = c.conn.Write(p.Bytes())
+	if err != nil {
+		return err
+	}
+
+	if c.timeout != 0 {
+		err := c.conn.SetWriteDeadline(time.Now().Add(c.timeout))
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
