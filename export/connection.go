@@ -53,6 +53,7 @@ func (c *Client) handleConnection(network string, conn net.Conn) {
 		} else {
 			c.readyStateCallback.OnError(err.Error())
 		}
+		_ = c.Close()
 	}
 }
 
