@@ -19,30 +19,39 @@ const (
 )
 
 // handleConnection 处理客户端连接
-func (c *Client) handleConnection(network string, conn net.Conn) (err error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer func(cancel context.CancelFunc) { cancel() }(cancel)
+func (c *Client) handleConnection(network string, conn net.Conn) {
+	eg, ctx := errgroup.WithContext(context.Background())
 
-	var eg errgroup.Group
+	eg.Go(func() error {
+		var err error
+
+		switch network {
+		case networkTCP:
+			err = c.handleReceivedTCPPackets(conn)
+		case networkUDP:
+			err = c.handleReceivedUDPPackets(conn)
+		default:
+			panic("unsupported network, must be tcp or udp")
+		}
+
+		return err
+	})
 
 	eg.Go(func() error {
 		return c.handleSendPackets(ctx, conn)
 	})
 
-	eg.Go(func() error {
-		switch network {
-		case networkTCP:
-			return c.handleReceivedTCPPackets(conn)
-		case networkUDP:
-			return c.handleReceivedUDPPackets(conn)
-		default:
-			panic("unsupported network")
+	go c.readyStateCallback.OnOpen()
+
+	err := eg.Wait()
+	if err != nil {
+		c.readyState = CLOSED
+		if err == io.EOF {
+			c.readyStateCallback.OnClose()
+		} else {
+			c.readyStateCallback.OnError(err.Error())
 		}
-	})
-
-	c.readyStateCallback.OnOpen()
-
-	return eg.Wait()
+	}
 }
 
 // handleSendPackets 对发送的数据包进行处理
@@ -62,7 +71,7 @@ func (c *Client) handleSendPackets(ctx context.Context, conn net.Conn) error {
 				}
 			}
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		}
 	}
 }

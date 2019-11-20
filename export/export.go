@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"hash/crc32"
-	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -349,17 +348,7 @@ func (c *Client) connect(network, server string, port int) error {
 
 	c.readyState = OPEN
 
-	go func(conn net.Conn) {
-		err = c.handleConnection(network, conn)
-		if err != nil {
-			c.readyState = CLOSED
-			if err == io.EOF {
-				c.readyStateCallback.OnClose()
-			} else {
-				c.readyStateCallback.OnError(err.Error())
-			}
-		}
-	}(c.conn)
+	go c.handleConnection(network, c.conn)
 
-	return err
+	return nil
 }
