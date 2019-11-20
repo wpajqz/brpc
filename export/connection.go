@@ -41,6 +41,8 @@ func (c *Client) handleConnection(network string, conn net.Conn) {
 		return c.handleSendPackets(ctx, conn)
 	})
 
+	// wait one second for receive and send routine loaded
+	time.Sleep(time.Second)
 	go c.readyStateCallback.OnOpen()
 
 	err := eg.Wait()
