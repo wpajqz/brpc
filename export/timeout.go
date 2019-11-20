@@ -5,7 +5,7 @@ import "context"
 func (c *Client) SyncSendWithTimeout(ctx context.Context, operator string, param []byte, callback RequestStatusCallback) error {
 	ch := make(chan error, 1)
 	go func() {
-		ch <- c.AsyncSend(operator, param, callback)
+		ch <- c.SyncSend(operator, param, callback)
 	}()
 
 	for {
