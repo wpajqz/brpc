@@ -33,7 +33,7 @@ type (
 func NewClient(address []string, opts ...Option) (*Client, error) {
 	options := options{
 		network:     defaultNetwork,
-		dialTimeout: 10 * time.Second,
+		dialTimeout: 3 * time.Second,
 		maxPayload:  10 * 1024 * 1024,
 		initialCap:  10,
 		maxCap:      30,
