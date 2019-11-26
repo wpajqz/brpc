@@ -67,7 +67,7 @@ func (f handlerFunc) Handle(header, body []byte) {
 }
 
 // NewClient 初始化客户端链接
-func NewClient(server string, port int, readyStateCallback ReadyStateCallback) (*Client, error) {
+func NewClient(address string, readyStateCallback ReadyStateCallback) (*Client, error) {
 	c := &Client{
 		readyState:       CONNECTING,
 		mutex:            new(sync.Mutex),
@@ -80,7 +80,7 @@ func NewClient(server string, port int, readyStateCallback ReadyStateCallback) (
 		c.readyStateCallback = readyStateCallback
 	}
 
-	err := c.connect("tcp", server, port)
+	err := c.connect("tcp", address)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func NewClient(server string, port int, readyStateCallback ReadyStateCallback) (
 }
 
 // NewUDPClient 初始化UDP客户端链接
-func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback) (*Client, error) {
+func NewUDPClient(address string, readyStateCallback ReadyStateCallback) (*Client, error) {
 	c := &Client{
 		readyState:       CONNECTING,
 		mutex:            new(sync.Mutex),
@@ -102,7 +102,7 @@ func NewUDPClient(server string, port int, readyStateCallback ReadyStateCallback
 		c.readyStateCallback = readyStateCallback
 	}
 
-	err := c.connect("udp", server, port)
+	err := c.connect("udp", address)
 	if err != nil {
 		return nil, err
 	}
@@ -335,11 +335,8 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) connect(network, server string, port int) error {
-	var (
-		err     error
-		address = strings.Join([]string{server, strconv.Itoa(port)}, ":")
-	)
+func (c *Client) connect(network, address string) error {
+	var err error
 
 	c.conn, err = net.Dial(network, address)
 	if err != nil {

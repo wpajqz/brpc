@@ -14,7 +14,7 @@ import (
 
 var interval int64 = 60
 
-func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
+func (c *Client) newExportPool() (pool.Pool, error) {
 	// ping请求的回调，出错的时候调用
 	cb := RequestStatusCallback{
 		Error: func(code int, msg string) {
@@ -24,7 +24,26 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 
 	// factory 创建连接的方法
 	factory := func() (interface{}, error) {
-		exportClient, err := export.NewClient(server, port, &ReadyStateCallback{Open: c.onOpen, Close: c.onClose, Error: func(err string) { c.onError(errors.New(err)) }})
+		var (
+			exportClient *export.Client
+			err          error
+		)
+
+		// 出现错误的时候不退出，继续等待服务端恢复以后进行重连
+		address, err := c.getAddress()
+		if err != nil {
+			c.fillAddress(c.address)
+			if c.onError != nil {
+				c.onError(err)
+			}
+		}
+
+		if c.network == "tcp" {
+			exportClient, err = export.NewClient(address, &ReadyStateCallback{Open: c.onOpen, Close: c.onClose, Error: func(err string) { c.onError(errors.New(err)) }})
+		} else {
+			exportClient, err = export.NewUDPClient(address, &ReadyStateCallback{Open: c.onOpen, Close: c.onClose, Error: func(err string) { c.onError(errors.New(err)) }})
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("brpc error: %s\n", err.Error())
 		}
@@ -49,6 +68,8 @@ func (c *Client) newExportPool(server string, port int) (pool.Pool, error) {
 				}
 			}
 		}(exportClient)
+
+		c.availableAddress <- address
 
 		return exportClient, nil
 	}

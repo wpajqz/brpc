@@ -4,6 +4,8 @@ import "time"
 
 type (
 	options struct {
+		network         string
+		dialTimeout     time.Duration
 		maxPayload      int
 		initialCap      int
 		maxCap          int
@@ -21,6 +23,18 @@ type (
 
 func (f optionFunc) apply(o *options) {
 	f(o)
+}
+
+func WithNetwork(n string) Option {
+	return optionFunc(func(o *options) {
+		o.network = n
+	})
+}
+
+func WithDialTimeout(n time.Duration) Option {
+	return optionFunc(func(o *options) {
+		o.dialTimeout = n
+	})
 }
 
 func WithMaxPayload(n int) Option {
