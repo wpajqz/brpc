@@ -40,7 +40,7 @@ func NewClient(address []string, opts ...Option) (*Client, error) {
 	}
 
 	for _, o := range opts {
-		o.apply(&options)
+		o(&options)
 	}
 
 	defaultClient = &Client{
