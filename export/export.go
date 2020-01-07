@@ -60,9 +60,9 @@ type Client struct {
 	}
 }
 
-type handlerFunc func(header, body []byte)
+type HandlerFunc func(header, body []byte)
 
-func (f handlerFunc) Handle(header, body []byte) {
+func (f HandlerFunc) Handle(header, body []byte) {
 	f(header, body)
 }
 
@@ -128,7 +128,7 @@ func (c *Client) Ping(param []byte, callback RequestStatusCallback) error {
 	sequence := time.Now().UnixNano()
 	listener := int64(linker.OperatorHeartbeat) + sequence
 
-	c.handlerContainer.Store(listener, handlerFunc(func(header, body []byte) {
+	c.handlerContainer.Store(listener, HandlerFunc(func(header, body []byte) {
 		code := c.GetResponseProperty("code")
 		if code != "" {
 			message := c.GetResponseProperty("message")
@@ -182,7 +182,7 @@ func (c *Client) SyncSend(operator string, param []byte, callback RequestStatusC
 
 	callback.OnStart()
 
-	c.handlerContainer.Store(listener, handlerFunc(func(header, body []byte) {
+	c.handlerContainer.Store(listener, HandlerFunc(func(header, body []byte) {
 		code := c.GetResponseProperty("code")
 		if code != "" {
 			message := c.GetResponseProperty("message")
@@ -227,7 +227,7 @@ func (c *Client) AsyncSend(operator string, param []byte, callback RequestStatus
 	listener := int64(nType) + sequence
 	callback.OnStart()
 
-	c.handlerContainer.Store(listener, handlerFunc(func(header, body []byte) {
+	c.handlerContainer.Store(listener, HandlerFunc(func(header, body []byte) {
 		code := c.GetResponseProperty("code")
 		if code != "" {
 			message := c.GetResponseProperty("message")
@@ -253,6 +253,54 @@ func (c *Client) AsyncSend(operator string, param []byte, callback RequestStatus
 	return nil
 }
 
+// AddMessageListener 添加事件监听器
+func (c *Client) AddMessageListener(topic string, callback Handler) error {
+	if callback == nil {
+		return errors.New("callback can't be nil")
+	}
+
+	if c.readyState != OPEN {
+		return errors.New("ping getsockopt: connection refuse")
+	}
+
+	sequence := time.Now().UnixNano()
+	listener := int64(linker.OperatorRegisterListener) + sequence
+
+	// 对数据请求的返回状态进行处理,同步阻塞处理机制
+	c.mutex.Lock()
+	quit := make(chan bool)
+
+	var errRequest error
+	c.handlerContainer.Store(listener, HandlerFunc(func(header, body []byte) {
+		code := c.GetResponseProperty("code")
+		if code != "" {
+			message := c.GetResponseProperty("message")
+			errRequest = errors.New(message)
+		} else {
+			c.handlerContainer.Store(int64(crc32.ChecksumIEEE([]byte(topic))), callback)
+		}
+
+		c.handlerContainer.Delete(listener)
+		quit <- true
+	}))
+
+	p, err := linker.NewPacket(linker.OperatorRegisterListener, sequence, c.request.Header, []byte(topic), c.pluginForPacketSender)
+	if err != nil {
+		return err
+	}
+
+	c.packet <- p
+	<-quit
+
+	if errRequest != nil {
+		return errRequest
+	}
+
+	c.mutex.Unlock()
+
+	return nil
+}
+
 // SetMaxPayload 设置可处理的数据包的最大长度
 func (c *Client) SetMaxPayload(maxPayload int) {
 	c.maxPayload = maxPayload
@@ -266,11 +314,6 @@ func (c *Client) SetPluginForPacketSender(plugins []linker.PacketPlugin) {
 // pluginForPacketReceiver 设置接收包需要的插件
 func (c *Client) SetPluginForPacketReceiver(plugins []linker.PacketPlugin) {
 	c.pluginForPacketReceiver = plugins
-}
-
-// AddMessageListener 添加事件监听器
-func (c *Client) AddMessageListener(listener string, callback Handler) {
-	c.handlerContainer.Store(int64(crc32.ChecksumIEEE([]byte(listener))), callback)
 }
 
 // RemoveMessageListener 移除事件监听器
