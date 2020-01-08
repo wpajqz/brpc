@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/wpajqz/linker"
+	"github.com/wpajqz/linker/plugin"
 )
 
 // Connection status
@@ -52,8 +53,8 @@ type Client struct {
 	timeout                 time.Duration
 	handlerContainer        sync.Map
 	packet                  chan linker.Packet
-	pluginForPacketSender   []linker.PacketPlugin
-	pluginForPacketReceiver []linker.PacketPlugin
+	pluginForPacketSender   []plugin.PacketPlugin
+	pluginForPacketReceiver []plugin.PacketPlugin
 	maxPayload              int
 	request, response       struct {
 		Header, Body []byte
@@ -307,12 +308,12 @@ func (c *Client) SetMaxPayload(maxPayload int) {
 }
 
 // SetPluginForPacketSender 设置发送包需要的插件
-func (c *Client) SetPluginForPacketSender(plugins []linker.PacketPlugin) {
+func (c *Client) SetPluginForPacketSender(plugins ...plugin.PacketPlugin) {
 	c.pluginForPacketSender = plugins
 }
 
 // pluginForPacketReceiver 设置接收包需要的插件
-func (c *Client) SetPluginForPacketReceiver(plugins []linker.PacketPlugin) {
+func (c *Client) SetPluginForPacketReceiver(plugins ...plugin.PacketPlugin) {
 	c.pluginForPacketReceiver = plugins
 }
 

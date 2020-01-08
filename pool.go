@@ -8,8 +8,7 @@ import (
 
 	"github.com/silenceper/pool"
 	"github.com/wpajqz/brpc/export"
-	"github.com/wpajqz/linker"
-	"github.com/wpajqz/linker/plugins"
+	"github.com/wpajqz/linker/plugin/crypt"
 )
 
 var interval int64 = 60
@@ -49,12 +48,8 @@ func (c *Client) newExportPool() (pool.Pool, error) {
 		}
 
 		exportClient.SetMaxPayload(c.maxPayload)
-		exportClient.SetPluginForPacketSender([]linker.PacketPlugin{
-			&plugins.Encryption{},
-		})
-		exportClient.SetPluginForPacketReceiver([]linker.PacketPlugin{
-			&plugins.Decryption{},
-		})
+		exportClient.SetPluginForPacketSender(crypt.NewEncryptPlugin())
+		exportClient.SetPluginForPacketReceiver(crypt.NewDecryptPlugin())
 
 		go func(ec *export.Client) {
 			ticker := time.NewTicker(time.Duration(interval) * time.Second)
